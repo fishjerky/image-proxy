@@ -7,14 +7,19 @@ import (
 //1. Normal case
 // png/jpg/gif
 func Test_Normal(t *testing.T) {
-	//		t.Error("除法函數測試沒通過") //如果不是如預期的那麼就報錯
-	//		t.Log("第一個測試通過了") //記錄一些你期望記錄的信息
+	url := "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png"
+
+	image, err := GetImageFromUrl(url)
+	if err != nil {
+		t.Error("就是不通過")
+	}
+	t.Log("size: %d", len(image))
 }
 
 //2.resize image
 // -3m/6m/14m
 func Test_Resize(t *testing.T) {
-	t.Error("就是不通過")
+	//t.Error("就是不通過")
 }
 
 //3.boundary case
@@ -26,14 +31,28 @@ func Test_Resize(t *testing.T) {
 func Test_Boundary(t *testing.T) {
 }
 
+//4.redirect case
 func Test_Redirect(t *testing.T) {
+
+	//normail
+	url := "http://www.myfone.com.tw/buy/myfoneweb/buy/Download_app/button.png"
+	image, err := GetImageFromUrl(url)
+	if err != nil {
+		t.Error("Error")
+	}
+	t.Log("get images with size %d", len(image)) //記錄一些你期望記錄的信息
+
+	//domain
+	url = "http://myfone.taiwanmobile.com/buy/myfoneweb/buy/Download_app/button.png"
+	image, err = GetImageFromUrl(url)
+	if err != nil {
+		t.Error("Error")
+	}
+	t.Log("get images with size %d", len(image)) //記錄一些你期望記錄的信息
+
 }
 
 //Test case
-//4.redirect case
-// http://www.myfone.com.tw/buy/myfoneweb/buy/Download_app/button.png
-// domain redirect
-//http://myfone.taiwanmobile.com/buy/myfoneweb/buy/Download_app/button.png
 //5.Referer
 // myfone.taiwanmobile.com
 //6.url encode
