@@ -4,6 +4,7 @@ import (
 	"image"
 	_ "image/color"
 	"os"
+	"strings"
 
 	"io/ioutil"
 	"log"
@@ -24,25 +25,6 @@ type Response struct {
 
 func main() {
 	log.SetOutput(os.Stdout)
-
-	//1.get image
-	url := ""
-	GetImageFromUrl(url)
-
-	//2.resize
-	filePath := "testdata/14m.jpg"
-	width, height := getImageDimensionFromFile(filePath)
-	log.Printf("Width:%d, Height: %d", width, height)
-
-	// open "test.jpg"
-	src, err := imaging.Open(filePath)
-	if err != nil {
-		log.Fatalf("Open failed: %v", err)
-	}
-
-	resize(src, width, height)
-
-	//3.response
 }
 
 func GetImageFromUrl(imageUrl string) ([]byte, error) {
@@ -58,7 +40,7 @@ func GetImageFromUrl(imageUrl string) ([]byte, error) {
 			log.Fatal(err)
 		}
 	}
-	log.Printf("Code: %d Url: %s", resp.StatusCode, imageUrl)
+	//log.Printf("Code: %d Url: %s", resp.StatusCode, imageUrl)
 
 	//exception case handling
 
@@ -93,22 +75,35 @@ func GetImageFromUrl(imageUrl string) ([]byte, error) {
 //1.resize width/height if bigger than max display width/height
 //2.compress quility
 //3.if resized image is bigger than max limit size!? give up! Orz
-func resize(src image.Image, width int, height int) {
+func resize(img image.Image) image.Image {
 	//1. resize if bigger than max display width/height
-	switch {
-	case width > MaxDisplayWidth:
-		src = imaging.Resize(src, MaxDisplayWidth, 0, imaging.NearestNeighbor)
-	case height > MaxDisplayHeight:
-		src = imaging.Resize(src, 0, MaxDisplayHeight, imaging.NearestNeighbor)
+	width := img.Bounds().Dx()
+	height := img.Bounds().Dy()
+	log.Printf("Image width:%d, height: %d", width, height)
+
+	//prevent empty
+	if (width == 0) && (height == 0) {
+		return img
 	}
 
-	//	dst := imaging.New(512, 512, color.NRGBA{0, 0, 0, 0})
+	//resize big image
+	resized := img
+	switch {
+	case width > MaxDisplayWidth:
+		resized = imaging.Resize(img, MaxDisplayWidth, 0, imaging.NearestNeighbor)
+	case height > MaxDisplayHeight:
+		resized = imaging.Resize(img, 0, MaxDisplayHeight, imaging.NearestNeighbor)
+	}
 
 	// Save the resulting image using JPEG format.
-	err := imaging.Save(src, "result/out_example.jpg")
+	err := imaging.Save(resized, "result/out_example.jpg")
 	if err != nil {
 		log.Fatalf("Save failed: %v", err)
 	}
+
+	//log.Printf("Finish resizing form %d to %d()", img.Size(), resized.Size())
+
+	return resized
 }
 
 func getImageDimensionFromFile(imagePath string) (int, int) {
@@ -122,4 +117,21 @@ func getImageDimensionFromFile(imagePath string) (int, int) {
 		log.Printf("%s: %v\n", imagePath, err)
 	}
 	return image.Width, image.Height
+}
+
+func CheckReferer(referer string) bool {
+	validReferers := []string{"myfone.com.tw", "taiwanmobile.com"}
+	//referer = request.Header.Get("Referer")
+	if len(referer) == 0 {
+		log.Printf("referer is empty")
+		return false
+	}
+
+	for _, domain := range validReferers {
+		if strings.Contains(referer, domain) == true {
+			return true
+		}
+
+	}
+	return false
 }
