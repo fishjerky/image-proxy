@@ -1,8 +1,16 @@
 package main
 
 import (
-	"testing"
 	//"github.com/disintegration/imaging"
+	"testing"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/stretchr/testify/assert"
+)
+
+var (
+
+//query["p"] = "http://files.softicons.com/download/game-icons/super-mario-icons-by-sandro-pereira/png/16/Mushroom%20-%20Super.png"
 )
 
 //1. Normal case
@@ -14,20 +22,24 @@ func Test_Normal(t *testing.T) {
 	if err != nil {
 		t.Error("就是不通過")
 	}
-	t.Log("[case]Normal pass, size: %d", len(image))
+	t.Log("[case]Normal pass, size: ", len(image))
 }
 
 //2.resize image
 // -3m/6m/14m
 func Test_Resize(t *testing.T) {
-	/*	t.Skip("skipping this case")
+	/*
 		filePath := "testdata/10m.jpg"
-		src, err := imaging.Open(filePath)
+		src, err := os.Open(filePath)
 		if err != nil {
 			t.Error("Open failed: %v", err)
 		}
 
 		resized := resize(src)
+
+		if resized.Bounds().Dx() > MaxDisplayWidth {
+			t.Error("Resize failed: ")
+		}
 	*/
 }
 
@@ -66,19 +78,19 @@ func Test_Redirect(t *testing.T) {
 //5.Referer
 func Test_CheckReferer(t *testing.T) {
 	//valid
-	referer := "http://myfone.taiwanmobile.com/"
-	if CheckReferer(referer) == false {
+	referer := "http://myfone.com.tw/"
+	if !CheckReferer(referer) {
 		t.Error("Error! " + referer + " should be a valid referer")
 	}
 
 	referer = "http://myfone.taiwanmobile.com/"
-	if CheckReferer(referer) == false {
+	if !CheckReferer(referer) {
 		t.Error("Error! " + referer + " should be a valid referer")
 	}
 
 	//invalid
 	referer = "http://www.pchome.com/"
-	if CheckReferer(referer) == false {
+	if CheckReferer(referer) {
 		t.Error("Error! " + referer + " is not a valid referer")
 	}
 
@@ -93,4 +105,103 @@ func Test_UrlEncode(t *testing.T) {
 	}
 	t.Log("[Case] Redirect pass with size: ", len(image))
 
+}
+
+//7. http/https
+/*
+func TestHandler(t *testing.T) {
+	tests := []struct {
+		request events.APIGatewayProxyRequest
+		expect  string
+		err     error
+	}{
+		{
+			// Test that the handler responds with the correct response
+			// when a valid name is provided in the HTTP body
+			request: events.APIGatewayProxyRequest{Body: "Paul"},
+			expect:  "Hello Paul",
+			err:     nil,
+		},
+		{
+			// Test that the handler responds ErrNameNotProvided
+			// when no name is provided in the HTTP body
+			request: events.APIGatewayProxyRequest{Body: ""},
+			expect:  "",
+			err:     ErrNameNotProvided,
+		},
+	}
+
+	for _, test := range tests {
+		response, err := Handler(test.request)
+		assert.IsType(t, test.err, err)
+		assert.Equal(t, test.expect, response.Body)
+	}
+}*/
+func TestHandler(t *testing.T) {
+	headers := make(map[string]string)
+	query1 := make(map[string]string)
+	headers["Referer"] = "www.myfone.com.tw"
+	query1["p"] = "http://files.softicons.com/download/game-icons/super-mario-icons-by-sandro-pereira/png/16/Mushroom%20-%20Super.png"
+
+	query2 := make(map[string]string)
+	query2["p"] = "https://vignette.wikia.nocookie.net/fantendo/images/6/6e/Small-mario.png/revision/latest?cb=20120718024112"
+	tests := []struct {
+		request events.APIGatewayProxyRequest
+		expect  int
+		err     error
+	}{
+		{
+			// Test that the handler responds with the correct response
+			// when a valid name is provided in the HTTP body
+			request: events.APIGatewayProxyRequest{Headers: headers, QueryStringParameters: query1},
+			expect:  200,
+			err:     nil,
+		},
+		{
+			// Test that the handler responds ErrNameNotProvided
+			// when no name is provided in the HTTP body
+			request: events.APIGatewayProxyRequest{Headers: headers, QueryStringParameters: query2},
+			expect:  200,
+			err:     nil,
+		},
+	}
+
+	for _, test := range tests {
+		response, err := Handler(test.request)
+		assert.IsType(t, test.err, err)
+		assert.Equal(t, test.expect, response.StatusCode)
+	}
+}
+func TestInvalidHandler(t *testing.T) {
+	headers := make(map[string]string)
+	query := make(map[string]string)
+	headers["Referer"] = "invalid.referer.com"
+	//query["p"] = "http://files.softicons.com/download/game-icons/super-mario-icons-by-sandro-pereira/png/16/Mushroom%20-%20Super.png"
+
+	tests := []struct {
+		request events.APIGatewayProxyRequest
+		expect  string
+		err     error
+	}{
+		{
+			// Test that the handler responds with the correct response
+			// when a valid name is provided in the HTTP body
+			request: events.APIGatewayProxyRequest{Headers: headers, QueryStringParameters: query},
+			expect:  "",
+			err:     ErrPicUrlNotProvided,
+		},
+		{
+			// Test that the handler responds ErrNameNotProvided
+			// when no name is provided in the HTTP body
+			request: events.APIGatewayProxyRequest{Headers: headers},
+			expect:  "",
+			err:     ErrInvalidReferer,
+		},
+	}
+
+	for _, test := range tests {
+		response, err := Handler(test.request)
+		assert.IsType(t, test.err, err)
+		assert.Equal(t, test.expect, response.Body)
+	}
 }
